@@ -18,12 +18,14 @@ This project follows semantic versioning:
 - Windows Sandbox clean-machine QA flow for proving no-Python execution.
 - Inno Setup installer build and install/uninstall QA automation.
 - Public project metadata: MIT license, security policy, contribution guide, release manifest, version file, and production release documentation.
+- Lossless DOCX -> PDF -> DOCX round-trip for PDFs created by this application.
 
 ### Changed
 
 - Updated application and documentation from internal beta status to production release status.
 - Kept advanced or incomplete features honestly labeled as Basic or Coming Soon instead of presenting them as fully production-grade engines.
 - Standardized release package metadata around version `1.0.0` and the `production` channel.
+- Word to PDF now uses LibreOffice automatically when available, with Basic Text fallback when it is not installed.
 
 ### Validation
 
@@ -36,5 +38,6 @@ This project follows semantic versioning:
 ### Known Limitations
 
 - Office-to-PDF remains Basic Text conversion unless a layout-preserving engine such as LibreOffice is configured and validated.
+- DOCX round-trip recovery requires the PDF to have been created by this application.
 - Stamp PDF is a visible stamp workflow, not certificate-backed digital signing.
 - Translate PDF, AI Summarizer, PDF/A validation, and real digital signatures remain Coming Soon.

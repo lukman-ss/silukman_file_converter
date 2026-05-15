@@ -52,3 +52,6 @@ desktop.ini
 # Generated reports that may contain local machine paths
 summary/vm_import_result.md
 docs/internal_beta_*.md
+
+# Local/private validation samples
+samples/KISI (2).docx

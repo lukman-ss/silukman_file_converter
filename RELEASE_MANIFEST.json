@@ -34,6 +34,8 @@
     "evidence_required": true
   },
   "known_limitations": [
+    "DOCX -> PDF -> DOCX round-trip is lossless only for PDFs created by this application.",
+    "Word to PDF uses LibreOffice automatically when available and falls back to Basic Text generation otherwise.",
     "Office-to-PDF is Basic Text conversion unless a layout-preserving engine is configured and validated.",
     "Stamp PDF adds a visible stamp only; it is not certificate-backed digital signing.",
     "Translate PDF, AI Summarizer, PDF/A validation, and real digital signatures are intentionally marked Coming Soon until their engines are implemented and validated."

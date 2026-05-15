@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import copy2, which
 from typing import Callable
 import csv
 import difflib
@@ -9,6 +10,11 @@ from tempfile import TemporaryDirectory
 
 import fitz
 from PIL import Image
+from app.utils.process import run_hidden_process
+
+
+ORIGINAL_DOCX_ATTACHMENT_NAME = "silukman_original_source.docx"
+ORIGINAL_DOCX_ATTACHMENT_DESC = "Original DOCX source for lossless Silukman round-trip conversion"
 
 
 class PDFService:
@@ -253,15 +259,17 @@ class PDFService:
         return output
 
     def pdf_to_text_docx(self, pdf_path: str, output_dir: str) -> Path:
+        source = Path(pdf_path)
+        output = Path(output_dir) / f"{source.stem}.docx"
+        if self._restore_embedded_original_docx(source, output):
+            return output
+
         try:
             from docx import Document
             from docx.shared import Inches
             from docx.enum.text import WD_BREAK
         except ImportError as exc:
             raise RuntimeError("Dependency python-docx belum terpasang untuk PDF to Word.") from exc
-
-        source = Path(pdf_path)
-        output = Path(output_dir) / f"{source.stem}.docx"
 
         docx = Document()
         section = docx.sections[0]
@@ -369,6 +377,11 @@ class PDFService:
         from docx import Document
 
         source = Path(docx_path)
+        output = Path(output_dir) / f"{source.stem}.pdf"
+        if self._convert_office_to_pdf_with_libreoffice(source, output):
+            self._embed_original_docx(output, source)
+            return output
+
         document = Document(source)
         lines = []
         for paragraph in document.paragraphs:
@@ -377,7 +390,95 @@ class PDFService:
         for table in document.tables:
             for row in table.rows:
                 lines.append(" | ".join(cell.text.strip() for cell in row.cells))
-        return self._write_lines_to_pdf(lines or ["Empty DOCX"], Path(output_dir) / f"{source.stem}.pdf")
+        output = self._write_lines_to_pdf(lines or ["Empty DOCX"], output)
+        self._embed_original_docx(output, source)
+        return output
+
+    def _convert_office_to_pdf_with_libreoffice(self, source: Path, output: Path) -> bool:
+        soffice = self._find_soffice()
+        if not soffice:
+            return False
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            profile_dir = temp_path / "lo-profile"
+            converted_dir = temp_path / "converted"
+            converted_dir.mkdir(parents=True, exist_ok=True)
+            command = [
+                soffice,
+                "--headless",
+                "--nologo",
+                "--nofirststartwizard",
+                "--nolockcheck",
+                f"-env:UserInstallation=file:///{profile_dir.as_posix()}",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                str(converted_dir),
+                str(source),
+            ]
+            result = run_hidden_process(command, timeout=1800)
+            converted = converted_dir / f"{source.stem}.pdf"
+            if result.returncode != 0 or not converted.exists() or converted.stat().st_size == 0:
+                return False
+            copy2(converted, output)
+            return True
+
+    def _find_soffice(self) -> str | None:
+        candidates = [
+            which("soffice.exe"),
+            which("soffice"),
+            which("libreoffice.exe"),
+            which("libreoffice"),
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+        ]
+        for candidate in candidates:
+            if candidate and Path(candidate).exists():
+                return str(candidate)
+        return None
+
+    def _embed_original_docx(self, pdf_path: Path, docx_path: Path) -> None:
+        if docx_path.suffix.lower() != ".docx":
+            return
+        with fitz.open(pdf_path) as document:
+            if document.is_encrypted:
+                raise ValueError("PDF terenkripsi dan tidak bisa diproses.")
+            existing = set(document.embfile_names())
+            if ORIGINAL_DOCX_ATTACHMENT_NAME in existing:
+                document.embfile_del(ORIGINAL_DOCX_ATTACHMENT_NAME)
+            document.embfile_add(
+                ORIGINAL_DOCX_ATTACHMENT_NAME,
+                docx_path.read_bytes(),
+                filename=docx_path.name,
+                ufilename=docx_path.name,
+                desc=ORIGINAL_DOCX_ATTACHMENT_DESC,
+            )
+            document.saveIncr()
+
+    def _restore_embedded_original_docx(self, pdf_path: Path, output: Path) -> bool:
+        with fitz.open(pdf_path) as document:
+            if document.is_encrypted:
+                raise ValueError("PDF terenkripsi dan tidak bisa diproses.")
+            for name in document.embfile_names():
+                info = document.embfile_info(name)
+                filename = str(info.get("filename") or info.get("ufilename") or name)
+                desc = str(info.get("desc") or "")
+                is_roundtrip_docx = (
+                    name == ORIGINAL_DOCX_ATTACHMENT_NAME
+                    or desc == ORIGINAL_DOCX_ATTACHMENT_DESC
+                    or filename.lower().endswith(".docx")
+                )
+                if not is_roundtrip_docx:
+                    continue
+                data = document.embfile_get(name)
+                if not data:
+                    continue
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(data)
+                return True
+        return False
 
     def xlsx_to_pdf(self, xlsx_path: str, output_dir: str) -> Path:
         from openpyxl import load_workbook
