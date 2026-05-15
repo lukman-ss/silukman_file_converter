@@ -1,6 +1,7 @@
 from pathlib import Path
 from shutil import copy2, which
 from typing import Callable
+import base64
 import csv
 import difflib
 from html.parser import HTMLParser
@@ -378,7 +379,7 @@ class PDFService:
 
         source = Path(docx_path)
         output = Path(output_dir) / f"{source.stem}.pdf"
-        if self._convert_office_to_pdf_with_libreoffice(source, output):
+        if self._convert_docx_to_pdf_with_word_com(source, output) or self._convert_office_to_pdf_with_libreoffice(source, output):
             self._embed_original_docx(output, source)
             return output
 
@@ -393,6 +394,47 @@ class PDFService:
         output = self._write_lines_to_pdf(lines or ["Empty DOCX"], output)
         self._embed_original_docx(output, source)
         return output
+
+    def _convert_docx_to_pdf_with_word_com(self, source: Path, output: Path) -> bool:
+        if source.suffix.lower() not in {".doc", ".docx"}:
+            return False
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        script = f"""
+$ErrorActionPreference = 'Stop'
+$source = {self._ps_quote(str(source.resolve()))}
+$output = {self._ps_quote(str(output.resolve()))}
+$word = $null
+$document = $null
+try {{
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $word.DisplayAlerts = 0
+    $document = $word.Documents.Open($source, $false, $true, $false)
+    $document.ExportAsFixedFormat($output, 17)
+}}
+finally {{
+    if ($document -ne $null) {{
+        $document.Close($false) | Out-Null
+        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($document) | Out-Null
+    }}
+    if ($word -ne $null) {{
+        $word.Quit() | Out-Null
+        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
+    }}
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}}
+if (-not (Test-Path -LiteralPath $output)) {{
+    throw 'Microsoft Word did not create the PDF output.'
+}}
+"""
+        encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
+        result = run_hidden_process(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded],
+            timeout=1800,
+        )
+        return result.returncode == 0 and output.exists() and output.stat().st_size > 0
 
     def _convert_office_to_pdf_with_libreoffice(self, source: Path, output: Path) -> bool:
         soffice = self._find_soffice()
@@ -438,6 +480,10 @@ class PDFService:
             if candidate and Path(candidate).exists():
                 return str(candidate)
         return None
+
+    @staticmethod
+    def _ps_quote(value: str) -> str:
+        return "'" + value.replace("'", "''") + "'"
 
     def _embed_original_docx(self, pdf_path: Path, docx_path: Path) -> None:
         if docx_path.suffix.lower() != ".docx":

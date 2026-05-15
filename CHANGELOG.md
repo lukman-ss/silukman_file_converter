@@ -25,7 +25,7 @@ This project follows semantic versioning:
 - Updated application and documentation from internal beta status to production release status.
 - Kept advanced or incomplete features honestly labeled as Basic or Coming Soon instead of presenting them as fully production-grade engines.
 - Standardized release package metadata around version `1.0.0` and the `production` channel.
-- Word to PDF now uses LibreOffice automatically when available, with Basic Text fallback when it is not installed.
+- Word to PDF now uses Microsoft Word COM automatically when Microsoft Word is installed, then LibreOffice when available, with Basic Text fallback when neither renderer exists.
 
 ### Validation
 

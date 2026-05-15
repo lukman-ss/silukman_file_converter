@@ -148,7 +148,7 @@ Unsupported or disabled operations are reported as skipped, blocked, `not_config
 ## Known Limitations
 
 - DOCX -> PDF -> DOCX round-trip is lossless only when the PDF was created by this application, because the original DOCX is stored as an internal PDF attachment for recovery.
-- Word to PDF visual fidelity uses LibreOffice automatically when `soffice` is available; otherwise it falls back to Basic Text PDF generation while still preserving the original DOCX for round-trip recovery.
+- Word to PDF visual fidelity uses Microsoft Word COM automatically when Microsoft Word is installed, then LibreOffice when `soffice` is available; otherwise it falls back to Basic Text PDF generation while still preserving the original DOCX for round-trip recovery.
 - Office-to-PDF is Basic Text conversion unless a layout-preserving engine such as LibreOffice is configured and validated.
 - Edit PDF, Watermark, Rotate, Crop, and Redact still use basic/default parameters.
 - Stamp PDF is a visible stamp workflow, not a certificate-backed digital signature.
