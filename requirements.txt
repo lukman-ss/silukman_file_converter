@@ -1,5 +1,5 @@
 # Main application dependencies — pinned to tested versions
-PySide6==6.11.0
+PySide6==6.11.1
 opencv-python==4.13.0
 Pillow==12.2.0
 PyMuPDF==1.27.2.3
