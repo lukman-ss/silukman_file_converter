@@ -1,5 +1,7 @@
 # Silukman File Converter
 
+![Silukman File Converter desktop app showcase](assets/readme/silukman_file_converter_showcase.png)
+
 Silukman File Converter is a Windows desktop application for file conversion, PDF operations, and OCR. It is built with Python, PySide6, PyInstaller, and PaddleOCR.
 
 ```text
