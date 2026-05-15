@@ -1,7 +1,7 @@
 {
   "application": "Silukman File Converter",
   "package_name": "silukman_file_converter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "channel": "production",
   "status": "READY_FOR_PRODUCTION",
   "final_production_readiness": "READY_FOR_PRODUCTION",
@@ -35,6 +35,7 @@
   },
   "known_limitations": [
     "DOCX -> PDF -> DOCX round-trip is lossless only for PDFs created by this application.",
+    "PDF operation recovery and PDF -> Office -> PDF restoration are lossless only for outputs created by this application.",
     "Word to PDF uses Microsoft Word COM automatically when Microsoft Word is installed, then LibreOffice when available, and falls back to Basic Text generation otherwise.",
     "Office-to-PDF is Basic Text conversion unless a layout-preserving engine is configured and validated.",
     "Stamp PDF adds a visible stamp only; it is not certificate-backed digital signing.",

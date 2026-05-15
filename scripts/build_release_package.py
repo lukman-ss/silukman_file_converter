@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -38,6 +39,7 @@ PACKAGE_FORBIDDEN_DIRS = {
     "venv",
 }
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".log"}
+TRACKED_SAMPLE_PATHS: set[str] | None = None
 
 ROOT_FILES = [
     "CHANGELOG.md",
@@ -188,12 +190,43 @@ def copy_dir(source: Path, destination: Path) -> None:
 
 
 def should_skip(path: Path) -> bool:
+    try:
+        relative = normalize_path(path.relative_to(ROOT))
+        if is_untracked_local_sample(relative):
+            return True
+    except ValueError:
+        pass
     parts = set(path.parts)
     if parts & EXCLUDED_DIRS:
         return True
     if path.suffix.lower() in EXCLUDED_SUFFIXES:
         return True
     return False
+
+
+def is_untracked_local_sample(relative: str) -> bool:
+    if not relative.startswith("samples/"):
+        return False
+    git_dir = ROOT / ".git"
+    if not git_dir.exists():
+        return False
+    return relative not in tracked_sample_paths()
+
+
+def tracked_sample_paths() -> set[str]:
+    global TRACKED_SAMPLE_PATHS
+    if TRACKED_SAMPLE_PATHS is not None:
+        return TRACKED_SAMPLE_PATHS
+    result = subprocess.run(
+        ["git", "ls-files", "samples"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    TRACKED_SAMPLE_PATHS = set(result.stdout.splitlines()) if result.returncode == 0 else set()
+    return TRACKED_SAMPLE_PATHS
 
 
 def build_manifest(stage_root: Path, channel: str, version: str) -> dict:

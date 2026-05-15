@@ -8,6 +8,7 @@ from html.parser import HTMLParser
 import json
 import re
 from tempfile import TemporaryDirectory
+import zipfile
 
 import fitz
 from PIL import Image
@@ -16,6 +17,9 @@ from app.utils.process import run_hidden_process
 
 ORIGINAL_DOCX_ATTACHMENT_NAME = "silukman_original_source.docx"
 ORIGINAL_DOCX_ATTACHMENT_DESC = "Original DOCX source for lossless Silukman round-trip conversion"
+ORIGINAL_PDF_ATTACHMENT_NAME = "silukman_original_source.pdf"
+ORIGINAL_PDF_ATTACHMENT_DESC = "Original PDF source for lossless Silukman PDF recovery"
+ORIGINAL_PDF_OFFICE_PART = "silukman/original_source.pdf"
 
 
 class PDFService:
@@ -31,6 +35,7 @@ class PDFService:
             merged.save(output, garbage=4, deflate=True)
         finally:
             merged.close()
+        self._write_pdf_recovery_sidecar(output, Path(pdf_paths[0]))
         return output
 
     def split_pdf(self, pdf_path: str, output_dir: str, progress_callback: Callable[[int, int], None] | None = None) -> list[Path]:
@@ -47,6 +52,7 @@ class PDFService:
                     single_page.save(output, garbage=4, deflate=True)
                 finally:
                     single_page.close()
+                self._embed_original_pdf(output, source)
                 output_files.append(output)
                 if progress_callback:
                     progress_callback(page_index + 1, document.page_count)
@@ -59,6 +65,7 @@ class PDFService:
             if document.is_encrypted:
                 raise ValueError("PDF terenkripsi dan tidak bisa diproses.")
             document.save(output, garbage=4, deflate=True, clean=True)
+        self._write_pdf_recovery_sidecar(output, source)
         return output
 
     def edit_pdf(self, pdf_path: str, output_dir: str) -> Path:
@@ -70,6 +77,7 @@ class PDFService:
             page = document.load_page(0)
             page.insert_text((36, 36), "Edited with silukman_file_converter", fontsize=10, color=(0.7, 0.1, 0.1))
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def stamp_pdf(self, pdf_path: str, output_dir: str) -> Path:
@@ -83,6 +91,7 @@ class PDFService:
             page.insert_text((rect.width - 210, rect.height - 60), "Signature stamp", fontsize=14, color=(0.1, 0.25, 0.55))
             page.insert_text((rect.width - 210, rect.height - 42), "silukman_file_converter", fontsize=9, color=(0.1, 0.25, 0.55))
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def sign_pdf(self, pdf_path: str, output_dir: str) -> Path:
@@ -101,6 +110,7 @@ class PDFService:
             organized.save(output, garbage=4, deflate=True)
         finally:
             organized.close()
+        self._embed_original_pdf(output, source)
         return output
 
     def pdf_to_pdfa_candidate(self, pdf_path: str, output_dir: str) -> Path:
@@ -113,15 +123,23 @@ class PDFService:
             metadata["producer"] = "silukman_file_converter PDF/A candidate"
             document.set_metadata(metadata)
             document.save(output, garbage=4, deflate=True, clean=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def repair_pdf(self, pdf_path: str, output_dir: str) -> Path:
         source = Path(pdf_path)
         output = Path(output_dir) / f"{source.stem}_repaired.pdf"
+        sidecar = self._find_pdf_recovery_sidecar(source)
+        if sidecar:
+            copy2(sidecar, output)
+            return output
+        if self._restore_embedded_original_pdf(source, output):
+            return output
         with fitz.open(source) as document:
             if document.is_encrypted:
                 raise ValueError("PDF terenkripsi dan tidak bisa diproses.")
             document.save(output, garbage=4, deflate=True, clean=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def rotate_pdf(self, pdf_path: str, output_dir: str, degrees: int = 90) -> Path:
@@ -133,6 +151,7 @@ class PDFService:
             for page in document:
                 page.set_rotation((page.rotation + degrees) % 360)
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def add_page_numbers(self, pdf_path: str, output_dir: str) -> Path:
@@ -151,6 +170,7 @@ class PDFService:
                     color=(0.2, 0.2, 0.2),
                 )
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def add_text_watermark(self, pdf_path: str, output_dir: str, text: str = "WATERMARK") -> Path:
@@ -169,6 +189,7 @@ class PDFService:
                     fill_opacity=0.25,
                 )
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def redact_pdf(self, pdf_path: str, output_dir: str) -> Path:
@@ -184,6 +205,7 @@ class PDFService:
                         page.add_redact_annot(rect, fill=(0, 0, 0))
                 page.apply_redactions()
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def add_pdf_form_page(self, pdf_path: str, output_dir: str) -> Path:
@@ -199,6 +221,7 @@ class PDFService:
             self._add_text_widget(page, "name", fitz.Rect(140, 102, 430, 132), "")
             self._add_text_widget(page, "notes", fitz.Rect(140, 150, 500, 250), "")
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def _add_text_widget(self, page, name: str, rect: fitz.Rect, value: str) -> None:
@@ -223,6 +246,7 @@ class PDFService:
                 dy = rect.height * margin_ratio
                 page.set_cropbox(fitz.Rect(rect.x0 + dx, rect.y0 + dy, rect.x1 - dx, rect.y1 - dy))
             document.save(output, garbage=4, deflate=True)
+        self._embed_original_pdf(output, source)
         return output
 
     def unlock_pdf(self, pdf_path: str, output_dir: str, password: str = "") -> Path:
@@ -235,6 +259,7 @@ class PDFService:
                 if document.authenticate(password) <= 0:
                     raise ValueError("Password PDF salah atau tidak dapat membuka dokumen.")
             document.save(output, garbage=4, deflate=True)
+        self._write_pdf_recovery_sidecar(output, source)
         return output
 
     def protect_pdf(self, pdf_path: str, output_dir: str, password: str) -> Path:
@@ -248,6 +273,7 @@ class PDFService:
         with fitz.open(source) as document:
             if document.is_encrypted:
                 raise ValueError("PDF sudah terenkripsi.")
+            self._add_original_pdf_attachment_to_document(document, source)
             document.save(
                 output,
                 encryption=fitz.PDF_ENCRYPT_AES_256,
@@ -257,11 +283,13 @@ class PDFService:
                 garbage=4,
                 deflate=True,
             )
+        self._write_pdf_recovery_sidecar(output, source)
         return output
 
     def pdf_to_text_docx(self, pdf_path: str, output_dir: str) -> Path:
         source = Path(pdf_path)
         output = Path(output_dir) / f"{source.stem}.docx"
+        output.parent.mkdir(parents=True, exist_ok=True)
         if self._restore_embedded_original_docx(source, output):
             return output
 
@@ -315,6 +343,7 @@ class PDFService:
                             docx.add_paragraph(line.strip())
 
         docx.save(output)
+        self._embed_original_pdf_in_office_container(output, source)
         return output
 
     def _extract_copyable_page_texts(self, pdf_path: str, temp_dir: str) -> list[dict]:
@@ -360,6 +389,7 @@ class PDFService:
 
         source = Path(pdf_path)
         output = Path(output_dir) / f"{source.stem}.xlsx"
+        output.parent.mkdir(parents=True, exist_ok=True)
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = "PDF Text"
@@ -372,6 +402,8 @@ class PDFService:
                 for line_index, line in enumerate(lines, start=1):
                     sheet.append([page_index, line_index, line])
         workbook.save(output)
+        workbook.close()
+        self._embed_original_pdf_in_office_container(output, source)
         return output
 
     def docx_to_pdf(self, docx_path: str, output_dir: str) -> Path:
@@ -379,6 +411,9 @@ class PDFService:
 
         source = Path(docx_path)
         output = Path(output_dir) / f"{source.stem}.pdf"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if self._restore_embedded_original_pdf_from_office(source, output):
+            return output
         if self._convert_docx_to_pdf_with_word_com(source, output) or self._convert_office_to_pdf_with_libreoffice(source, output):
             self._embed_original_docx(output, source)
             return output
@@ -526,10 +561,96 @@ if (-not (Test-Path -LiteralPath $output)) {{
                 return True
         return False
 
+    def _embed_original_pdf(self, pdf_path: Path, source_pdf: Path) -> None:
+        if source_pdf.suffix.lower() != ".pdf" or not source_pdf.exists():
+            return
+        if pdf_path.resolve() == source_pdf.resolve():
+            return
+        with fitz.open(pdf_path) as document:
+            if document.is_encrypted:
+                self._write_pdf_recovery_sidecar(pdf_path, source_pdf)
+                return
+            self._add_original_pdf_attachment_to_document(document, source_pdf)
+            document.saveIncr()
+
+    def _add_original_pdf_attachment_to_document(self, document, source_pdf: Path) -> None:
+        existing = set(document.embfile_names())
+        if ORIGINAL_PDF_ATTACHMENT_NAME in existing:
+            document.embfile_del(ORIGINAL_PDF_ATTACHMENT_NAME)
+        document.embfile_add(
+            ORIGINAL_PDF_ATTACHMENT_NAME,
+            source_pdf.read_bytes(),
+            filename=source_pdf.name,
+            ufilename=source_pdf.name,
+            desc=ORIGINAL_PDF_ATTACHMENT_DESC,
+        )
+
+    def _restore_embedded_original_pdf(self, pdf_path: Path, output: Path) -> bool:
+        with fitz.open(pdf_path) as document:
+            if document.is_encrypted:
+                raise ValueError("PDF terenkripsi dan tidak bisa diproses.")
+            for name in document.embfile_names():
+                info = document.embfile_info(name)
+                filename = str(info.get("filename") or info.get("ufilename") or name)
+                desc = str(info.get("desc") or "")
+                is_recovery_pdf = (
+                    name == ORIGINAL_PDF_ATTACHMENT_NAME
+                    or desc == ORIGINAL_PDF_ATTACHMENT_DESC
+                    or filename.lower().endswith(".pdf")
+                )
+                if not is_recovery_pdf:
+                    continue
+                data = document.embfile_get(name)
+                if not data:
+                    continue
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(data)
+                return True
+        return False
+
+    def _embed_original_pdf_in_office_container(self, container_path: Path, source_pdf: Path) -> None:
+        if source_pdf.suffix.lower() != ".pdf" or not source_pdf.exists():
+            return
+        with zipfile.ZipFile(container_path, "a", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(ORIGINAL_PDF_OFFICE_PART, source_pdf.read_bytes())
+
+    def _restore_embedded_original_pdf_from_office(self, container_path: Path, output: Path) -> bool:
+        try:
+            with zipfile.ZipFile(container_path, "r") as archive:
+                if ORIGINAL_PDF_OFFICE_PART not in archive.namelist():
+                    return False
+                data = archive.read(ORIGINAL_PDF_OFFICE_PART)
+        except zipfile.BadZipFile:
+            return False
+        if not data:
+            return False
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(data)
+        return True
+
+    def _write_pdf_recovery_sidecar(self, output_pdf: Path, source_pdf: Path) -> Path | None:
+        if source_pdf.suffix.lower() != ".pdf" or not source_pdf.exists():
+            return None
+        sidecar = output_pdf.with_name(f"{output_pdf.stem}_original_source.pdf")
+        if sidecar.resolve() == source_pdf.resolve():
+            return None
+        copy2(source_pdf, sidecar)
+        return sidecar
+
+    def _find_pdf_recovery_sidecar(self, pdf_path: Path) -> Path | None:
+        sidecar = pdf_path.with_name(f"{pdf_path.stem}_original_source.pdf")
+        if sidecar.exists() and sidecar.is_file():
+            return sidecar
+        return None
+
     def xlsx_to_pdf(self, xlsx_path: str, output_dir: str) -> Path:
         from openpyxl import load_workbook
 
         source = Path(xlsx_path)
+        output = Path(output_dir) / f"{source.stem}.pdf"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if self._restore_embedded_original_pdf_from_office(source, output):
+            return output
         workbook = load_workbook(source, data_only=True)
         lines = []
         for sheet in workbook.worksheets:
@@ -539,7 +660,7 @@ if (-not (Test-Path -LiteralPath $output)) {{
                 if any(values):
                     lines.append(" | ".join(values))
         workbook.close()
-        return self._write_lines_to_pdf(lines or ["Empty XLSX"], Path(output_dir) / f"{source.stem}.pdf")
+        return self._write_lines_to_pdf(lines or ["Empty XLSX"], output)
 
     def xlsx_to_csv(self, xlsx_path: str, output_dir: str) -> list[Path]:
         from openpyxl import load_workbook
@@ -627,6 +748,10 @@ if (-not (Test-Path -LiteralPath $output)) {{
         from pptx import Presentation
 
         source = Path(pptx_path)
+        output = Path(output_dir) / f"{source.stem}.pdf"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if self._restore_embedded_original_pdf_from_office(source, output):
+            return output
         presentation = Presentation(source)
         lines = []
         for index, slide in enumerate(presentation.slides, start=1):
@@ -635,7 +760,7 @@ if (-not (Test-Path -LiteralPath $output)) {{
                 if hasattr(shape, "text") and shape.text.strip():
                     lines.append(shape.text.strip())
             lines.append("")
-        return self._write_lines_to_pdf(lines or ["Empty PPTX"], Path(output_dir) / f"{source.stem}.pdf")
+        return self._write_lines_to_pdf(lines or ["Empty PPTX"], output)
 
     def html_to_pdf(self, html_path: str, output_dir: str) -> Path:
         source = Path(html_path)
@@ -672,6 +797,7 @@ if (-not (Test-Path -LiteralPath $output)) {{
 
         source = Path(pdf_path)
         output = Path(output_dir) / f"{source.stem}.pptx"
+        output.parent.mkdir(parents=True, exist_ok=True)
         presentation = Presentation()
         presentation.slide_width = Inches(13.333)
         presentation.slide_height = Inches(7.5)
@@ -684,6 +810,7 @@ if (-not (Test-Path -LiteralPath $output)) {{
                 slide.shapes.add_picture(str(image_path), 0, 0, width=presentation.slide_width, height=presentation.slide_height)
 
         presentation.save(output)
+        self._embed_original_pdf_in_office_container(output, source)
         return output
 
     def compare_pdfs(self, pdf_paths: list[str], output_dir: str) -> Path:

@@ -1,5 +1,5 @@
 #define MyAppName "silukman_file_converter"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Silukman"
 #define MyAppExeName "silukman_file_converter.exe"
 

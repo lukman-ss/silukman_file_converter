@@ -3,7 +3,7 @@
 Silukman File Converter is a Windows desktop application for file conversion, PDF operations, and OCR. It is built with Python, PySide6, PyInstaller, and PaddleOCR.
 
 ```text
-Version : 1.0.0
+Version : 1.0.1
 Channel : production
 Status  : READY_FOR_PRODUCTION
 ```
@@ -24,6 +24,7 @@ Production-ready workflows:
 - Protect PDF with a user-provided password
 - Unlock PDF with a user-provided password for encrypted PDFs
 - Lossless DOCX -> PDF -> DOCX round-trip for PDFs created by this application
+- Recoverable PDF operations: PDF outputs keep original-source recovery data where practical, and PDF -> Word/Excel/PowerPoint -> PDF can restore the original PDF byte-for-byte for files produced by this application.
 
 Basic workflows:
 
@@ -187,13 +188,13 @@ Optimized build:
 Build a deterministic production release package:
 
 ```powershell
-.\build_release_package.ps1 -Channel production -Version 1.0.0
+.\build_release_package.ps1 -Channel production -Version 1.0.1
 ```
 
 Validate a release package:
 
 ```powershell
-.\validate_release_package.ps1 -Channel production -Version 1.0.0
+.\validate_release_package.ps1 -Channel production -Version 1.0.1
 ```
 
 ## Production QA

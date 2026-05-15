@@ -7,7 +7,7 @@ from app.core.converter import Converter
 
 def create_template_docx(path: Path) -> Path:
     document = Document()
-    document.add_heading("KISI Roundtrip Template", level=1)
+    document.add_heading("Document Roundtrip Template", level=1)
     table = document.add_table(rows=3, cols=3)
     table.style = "Table Grid"
     for row_index, row in enumerate(table.rows, start=1):
