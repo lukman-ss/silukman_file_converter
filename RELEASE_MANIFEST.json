@@ -1,0 +1,42 @@
+{
+  "application": "Silukman File Converter",
+  "package_name": "silukman_file_converter",
+  "version": "1.0.0",
+  "channel": "production",
+  "status": "READY_FOR_PRODUCTION",
+  "final_production_readiness": "READY_FOR_PRODUCTION",
+  "platform": "windows-x64",
+  "entrypoint": "dist/silukman_file_converter.exe",
+  "build_system": {
+    "language": "Python",
+    "gui": "PySide6",
+    "packager": "PyInstaller",
+    "installer": "Inno Setup"
+  },
+  "required_release_files": [
+    "VERSION",
+    "LICENSE",
+    "CHANGELOG.md",
+    "README.md",
+    "RELEASE_MANIFEST.json",
+    "dist/silukman_file_converter.exe",
+    "docs/",
+    "installer/silukman_file_converter.iss",
+    "summary/summary_exe.json",
+    "summary/file.md",
+    "tools/production_qa.py",
+    "tools/manual_qa_checklist.py",
+    "tools/windows_qa_runner.py"
+  ],
+  "production_gate": {
+    "required_decision": "READY_FOR_PRODUCTION",
+    "latest_known_decision": "READY_FOR_PRODUCTION",
+    "evidence_required": true
+  },
+  "known_limitations": [
+    "Office-to-PDF is Basic Text conversion unless a layout-preserving engine is configured and validated.",
+    "Stamp PDF adds a visible stamp only; it is not certificate-backed digital signing.",
+    "Translate PDF, AI Summarizer, PDF/A validation, and real digital signatures are intentionally marked Coming Soon until their engines are implemented and validated."
+  ],
+  "production_blockers": []
+}

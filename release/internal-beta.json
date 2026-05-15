@@ -1,0 +1,14 @@
+{
+  "channel": "internal-beta",
+  "display_name": "Internal Beta",
+  "audience": "Internal testers",
+  "can_publish_publicly": false,
+  "requires_clean_windows_test": true,
+  "requires_installer": false,
+  "requires_offline_ocr_validation": true,
+  "allowed_known_limits": [
+    "Office-to-PDF is labeled Basic Text.",
+    "PDF editing tools with fixed parameters are labeled Basic.",
+    "Translate PDF, AI Summarizer, PDF/A, and real Digital Signature remain Coming Soon."
+  ]
+}

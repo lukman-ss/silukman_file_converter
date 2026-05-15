@@ -1,0 +1,18 @@
+PDF public sources used:
+
+1. PDFObject sample PDF
+   https://pdfobject.com/pdf/sample.pdf
+
+2. W3C dummy PDF
+   https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
+
+Synthetic generated files:
+- invoice_clean.png
+- nota_blur.jpg
+- surat_jalan_rotated.png
+- table_lowres.jpg
+- invoice_scan_no_text_layer.pdf
+- nota_scan_no_text_layer.pdf
+- multipage_scan_no_text_layer.pdf
+
+These synthetic files contain no real user/customer data.

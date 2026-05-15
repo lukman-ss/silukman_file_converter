@@ -1,0 +1,71 @@
+{
+  "purpose": "Input test files for silukman_file_converter Windows desktop app.",
+  "created_for": "converter + PaddleOCR validation",
+  "public_sources": [
+    {
+      "file": "01_pdf_text_layer/pdfobject_sample_text_layer.pdf",
+      "source": "https://pdfobject.com/pdf/sample.pdf",
+      "type": "public sample PDF with text layer"
+    },
+    {
+      "file": "01_pdf_text_layer/w3c_dummy_text_layer.pdf",
+      "source": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      "type": "public dummy PDF with text layer"
+    }
+  ],
+  "generated_synthetic_files": "All invoice/nota/surat jalan/table images and scan PDFs are synthetic test files generated locally. They contain no real personal data.",
+  "expected_keywords": {
+    "03_images_for_ocr/invoice_clean.png": [
+      "invoice",
+      "bengkel maju jaya",
+      "oli mesin",
+      "subtotal",
+      "total"
+    ],
+    "03_images_for_ocr/nota_blur.jpg": [
+      "nota",
+      "rudi hartono",
+      "filter udara",
+      "total bayar"
+    ],
+    "03_images_for_ocr/surat_jalan_rotated.png": [
+      "surat jalan",
+      "gudang cabang cileungsi",
+      "pipa galvanis",
+      "diterima"
+    ],
+    "03_images_for_ocr/table_lowres.jpg": [
+      "laporan tabel ocr",
+      "kode",
+      "harga",
+      "margin"
+    ],
+    "02_pdf_scan_no_text_layer/invoice_scan_no_text_layer.pdf": [
+      "invoice",
+      "bengkel maju jaya",
+      "oli mesin",
+      "subtotal",
+      "total"
+    ],
+    "02_pdf_scan_no_text_layer/multipage_scan_no_text_layer.pdf": [
+      "invoice",
+      "nota",
+      "surat jalan",
+      "laporan tabel ocr"
+    ],
+    "01_pdf_text_layer/generated_invoice_text_layer.pdf": [
+      "invoice text layer",
+      "bengkel digital nusantara",
+      "oli mesin",
+      "total bayar"
+    ]
+  },
+  "recommended_statuses": [
+    "success",
+    "failed",
+    "partial",
+    "not_effective",
+    "not_configured",
+    "not_validated"
+  ]
+}

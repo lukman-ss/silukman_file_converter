@@ -1,0 +1,20 @@
+{
+  "channel": "production",
+  "display_name": "Production",
+  "audience": "Public users",
+  "can_publish_publicly": true,
+  "requires_clean_windows_test": true,
+  "requires_installer": true,
+  "requires_offline_ocr_validation": true,
+  "requires_office_layout_validation": false,
+  "requires_office_basic_labeling": true,
+  "required_gates": [
+    "Clean Windows no-Python EXE and installer test passed.",
+    "No terminal or CMD window appears during normal UI or OCR workflows.",
+    "Window does not force always-on-top behavior.",
+    "PaddleOCR first-run model download succeeds with a clear user path.",
+    "OCR image and OCR PDF scan work offline after model cache exists.",
+    "Installer installs, shortcuts run, and uninstall is clean.",
+    "Office-to-PDF is either layout-preserving or clearly excluded from production-ready feature claims."
+  ]
+}

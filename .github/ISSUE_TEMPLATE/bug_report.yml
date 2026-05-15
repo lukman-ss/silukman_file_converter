@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a reproducible problem in Silukman File Converter.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please remove private document content, local usernames, and sensitive paths from logs before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Example: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: How did you run the app?
+      options:
+        - Portable EXE
+        - Installer
+        - Source
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest safe sample or describe the file type without uploading private files.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or QA evidence
+      description: Paste only sanitized logs. Do not include credentials, private file contents, or local personal data.
+      render: text

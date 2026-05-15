@@ -1,0 +1,54 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+.venv_ocr/
+env/
+
+# Build and release artifacts
+build/
+dist/
+output/
+release_stage/
+clean_windows_validation_package/
+sandbox_clean_windows/
+clean_windows_validation_package.zip
+test_results_*.zip
+*.wsb
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Local configuration and secrets
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+
+# IDE and OS files
+.vscode/
+.idea/
+.kiro/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated reports that may contain local machine paths
+summary/vm_import_result.md
+docs/internal_beta_*.md
